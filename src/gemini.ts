@@ -33,7 +33,7 @@ Do NOT include any extra text, commentary, markdown, or backticks.
 `;
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+        model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
         contents: prompt,
         config: {
             temperature: 0, // deterministic output
