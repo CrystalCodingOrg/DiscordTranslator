@@ -2,6 +2,14 @@ import nacl from "tweetnacl";
 import { register } from "./register";
 import { translate } from "./gemini";
 
+// Debug logging helper
+const DEBUG_MODE = process.env.DEBUG_MODE === "1";
+function debug(...args: any[]) {
+  if (DEBUG_MODE) {
+    console.log("[DEBUG]", ...args);
+  }
+}
+
 // Validate required environment variables
 function validateEnv() {
   const required = [
@@ -20,6 +28,7 @@ function validateEnv() {
   }
   
   console.log("✅ All required environment variables are set");
+  debug("DEBUG_MODE is enabled");
 }
 
 validateEnv();
@@ -45,6 +54,8 @@ function deferResponse(ephemeral: boolean = true) {
 async function sendFollowUp(interactionToken: string, data: any) {
   const url = `https://discord.com/api/v10/webhooks/${process.env.APP_ID}/${interactionToken}`;
   
+  debug("Sending follow-up message:", { url, data });
+  
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -57,6 +68,8 @@ async function sendFollowUp(interactionToken: string, data: any) {
 
     if (!response.ok) {
       console.error("Failed to send follow-up:", await response.text());
+    } else {
+      debug("Follow-up sent successfully");
     }
   } catch (error) {
     console.error("Error sending follow-up:", error);
@@ -84,6 +97,7 @@ type CommandHandler = (data: any) => Promise<Response>;
 const commandHandlers: Record<string, CommandHandler> = {
   "translate_message": async (data) => {
     const interactionToken = data.token;
+    debug("translate_message command received:", { targetId: data.data?.target_id });
     
     // Defer the response immediately
     setTimeout(async () => {
@@ -91,6 +105,7 @@ const commandHandlers: Record<string, CommandHandler> = {
         const message = data.data?.resolved?.messages?.[data.data.target_id];
 
         if (!message) {
+          debug("Message not found in resolved data");
           await sendFollowUp(interactionToken, { 
             content: "Message not found ❌",
             flags: 64 // ephemeral
@@ -98,7 +113,9 @@ const commandHandlers: Record<string, CommandHandler> = {
           return;
         }
 
+        debug("Translating message:", message.content);
         const translation = await translate(message.content);
+        debug("Translation result:", translation);
 
         const embed = {
           title: "Translation",
@@ -128,12 +145,15 @@ const commandHandlers: Record<string, CommandHandler> = {
   // Slash command: /translate
   "translate": async (data) => {
     const interactionToken = data.token;
+    debug("translate command received");
 
     // Defer the response immediately
     setTimeout(async () => {
       try {
         const messageText = data.data?.options?.find((o: any) => o.name === "message")?.value;
         const language = data.data?.options?.find((o: any) => o.name === "language")?.value;
+
+        debug("Translate options:", { messageText, language });
 
         if (!messageText) {
           await sendFollowUp(interactionToken, { 
@@ -150,7 +170,9 @@ const commandHandlers: Record<string, CommandHandler> = {
           return;
         }
 
+        debug("Translating to", language);
         const translation = await translate(messageText, language);
+        debug("Translation result:", translation);
 
         const embed = {
           title: `Translation (${language})`,
@@ -201,7 +223,12 @@ const server = Bun.serve({
     const timestamp = req.headers.get("X-Signature-Timestamp");
     const body = await req.text();
 
-    if (!signature || !timestamp) return new Response(null, { status: 400 });
+    debug("Incoming request:", { signature: signature?.substring(0, 16) + "...", timestamp, bodyLength: body.length });
+
+    if (!signature || !timestamp) {
+      debug("Missing signature or timestamp");
+      return new Response(null, { status: 400 });
+    }
 
     const isVerified = nacl.sign.detached.verify(
       Buffer.from(timestamp + body),
@@ -209,12 +236,17 @@ const server = Bun.serve({
       Buffer.from(PUB_KEY, "hex")
     );
 
-    if (!isVerified) return new Response("invalid request signature", { status: 401 });
+    if (!isVerified) {
+      debug("Signature verification failed");
+      return new Response("invalid request signature", { status: 401 });
+    }
 
     const data = JSON.parse(body);
+    debug("Request verified, type:", data.type);
 
     // PING
     if (data.type === 1) {
+      debug("Received PING request");
       return new Response(JSON.stringify({ type: 1 }), {
         headers: { "Content-Type": "application/json" },
       });
@@ -227,11 +259,15 @@ const server = Bun.serve({
 
       if (handler) {
         console.log("Processing " + commandName);
+        debug("Full interaction data:", JSON.stringify(data, null, 2));
         
         return handler(data);
+      } else {
+        debug("No handler found for command:", commandName);
       }
     }
 
+    debug("Unhandled request type:", data.type);
     return new Response(null, { status: 404 });
   },
 });
