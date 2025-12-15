@@ -202,6 +202,10 @@ const commandHandlers: Record<string, CommandHandler> = {
   },
 };
 
+const commandAliases: Record<string, string> = {
+  "Translate Message": "translate_message"
+}
+
 const server = Bun.serve({
   port: 3000,
   hostname: "0.0.0.0",
@@ -255,7 +259,7 @@ const server = Bun.serve({
     // Handle commands
     if (data.type === 2) {
       const commandName = data.data?.name; // Discord sends the command name
-      const handler = commandHandlers[commandName];
+      const handler = commandHandlers[commandName] ?? commandHandlers[commandAliases[commandName] ?? ""];
 
       if (handler) {
         console.log("Processing " + commandName);
