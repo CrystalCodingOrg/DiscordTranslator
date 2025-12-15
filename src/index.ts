@@ -162,6 +162,8 @@ const server = Bun.serve({
       const handler = commandHandlers[commandName];
 
       if (handler) {
+        console.log("Processing " + commandName);
+        
         return handler(data);
       }
     }
