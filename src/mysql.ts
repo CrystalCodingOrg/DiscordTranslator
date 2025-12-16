@@ -48,12 +48,23 @@ export async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
-  try {
-    await db.execute(createTableSQL);
-    console.log("✅ Database tables initialized");
-  } catch (error) {
-    console.error("❌ Failed to initialize database tables:", error);
-    throw error;
+  const maxRetries = 10;
+  const retryDelay = 2000; // 2 seconds
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await db.execute(createTableSQL);
+      console.log("✅ Database tables initialized");
+      return;
+    } catch (error: any) {
+      if (attempt === maxRetries) {
+        console.error("❌ Failed to initialize database tables after", maxRetries, "attempts:", error);
+        throw error;
+      }
+      
+      console.log(`⏳ Database not ready (attempt ${attempt}/${maxRetries}), retrying in ${retryDelay/1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
   }
 }
 
