@@ -98,15 +98,17 @@ export async function getTranslationFromHistory(
     return null;
   }
 
+  const row = rows[0]!; // Safe because we checked length
+
   // Increment use count
   await db.execute(
     `UPDATE translation_history 
      SET use_count = use_count + 1, updated_at = CURRENT_TIMESTAMP 
      WHERE id = ?`,
-    [rows[0].id]
+    [row.id]
   );
 
-  return rows[0] as TranslationHistoryEntry;
+  return row as TranslationHistoryEntry;
 }
 
 // Save translation to history
@@ -127,6 +129,7 @@ export async function saveTranslationToHistory(
   );
 
   if (existing.length > 0) {
+    const existingRow = existing[0]!; // Safe because we checked length
     // Update existing entry
     await db.execute(
       `UPDATE translation_history 
@@ -135,7 +138,7 @@ export async function saveTranslationToHistory(
            use_count = use_count + 1,
            updated_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
-      [translatedMessage, detectedLanguage, existing[0].id]
+      [translatedMessage, detectedLanguage, existingRow.id]
     );
   } else {
     // Insert new entry
