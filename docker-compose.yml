@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: message-translator-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-translator_db}
+      MYSQL_USER: ${MYSQL_USER:-translator}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-translator_password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   message-translator:
     build:
       context: .
@@ -12,6 +32,9 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -20,6 +43,10 @@ services:
       start_period: 40s
     networks:
       - app-network
+
+volumes:
+  mysql-data:
+    driver: local
 
 networks:
   app-network:

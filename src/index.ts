@@ -1,6 +1,7 @@
 import nacl from "tweetnacl";
 import { register } from "./register";
 import { translate } from "./gemini";
+import { initMySQLPool, initDatabase } from "./mysql";
 
 // Debug logging helper
 const DEBUG_MODE = process.env.DEBUG_MODE === "1";
@@ -32,6 +33,10 @@ function validateEnv() {
 }
 
 validateEnv();
+
+// Initialize MySQL
+initMySQLPool();
+await initDatabase();
 
 const PUB_KEY = process.env.PUBLIC_KEY!;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN!;
@@ -118,8 +123,8 @@ const commandHandlers: Record<string, CommandHandler> = {
         debug("Translation result:", translation);
 
         const embed = {
-          title: "Translation",
-          color: 0x1abc9c,
+          title: translation.from_cache ? "Translation (from cache ✨)" : "Translation",
+          color: translation.from_cache ? 0x3498db : 0x1abc9c,
           fields: [
             { name: "Original Message", value: translation.original_message || "N/A" },
             { name: "Detected Language", value: translation.detected_language || "N/A" },
@@ -175,8 +180,8 @@ const commandHandlers: Record<string, CommandHandler> = {
         debug("Translation result:", translation);
 
         const embed = {
-          title: `Translation (${language})`,
-          color: 0x1abc9c,
+          title: translation.from_cache ? `Translation (${language}) - from cache ✨` : `Translation (${language})`,
+          color: translation.from_cache ? 0x3498db : 0x1abc9c,
           fields: [
             { name: "Original Message", value: translation.original_message || "N/A" },
             { name: "Detected Language", value: translation.detected_language || "N/A" },

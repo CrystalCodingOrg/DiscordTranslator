@@ -1,4 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
+import { 
+    getTranslationFromHistory, 
+    saveTranslationToHistory 
+} from "./mysql";
 
 const ai = new GoogleGenAI({});
 
@@ -6,12 +10,29 @@ export type TranslationResult = {
     original_message: string;
     translated_message: string;
     detected_language: string;
+    from_cache?: boolean;
 };
 
 export async function translate(
     message: string,
     language: string = "english"
 ): Promise<TranslationResult> {
+    // Check history first
+    const cachedTranslation = await getTranslationFromHistory(message, language);
+    
+    if (cachedTranslation) {
+        console.log("✨ Translation found in cache");
+        return {
+            original_message: cachedTranslation.original_message,
+            translated_message: cachedTranslation.translated_message,
+            detected_language: cachedTranslation.detected_language || "unknown",
+            from_cache: true,
+        };
+    }
+
+    console.log("🔄 Requesting new translation from Gemini");
+    
+    // Not in cache, use Gemini
     // Sanitize inputs to prevent prompt injection
     const sanitizedMessage = message.replace(/"/g, '\\"').slice(0, 2000); // Escape quotes and limit length
     const sanitizedLanguage = language.replace(/[^a-zA-Z\s-]/g, '').slice(0, 50); // Allow only letters, spaces, hyphens
@@ -66,9 +87,20 @@ Do NOT include any extra text, commentary, markdown, or backticks.
         }
     }
 
-    return {
+    const result = {
         original_message: jsonResponse.original_message ?? message,
         translated_message: jsonResponse.translated_message ?? message,
         detected_language: jsonResponse.detected_language ?? "unknown",
+        from_cache: false,
     };
+
+    // Save to history for future use
+    await saveTranslationToHistory(
+        result.original_message,
+        language,
+        result.detected_language,
+        result.translated_message
+    );
+
+    return result;
 }
