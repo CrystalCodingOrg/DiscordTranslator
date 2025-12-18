@@ -104,7 +104,7 @@ const commandHandlers: Record<string, CommandHandler> = {
     const interactionToken = data.token;
     const userId = data.member?.user?.id || data.user?.id;
     const username = data.member?.user?.username || data.user?.username;
-    debug("translate_message command received:", { targetId: data.data?.target_id, userId, username });
+    console.log(`Serving translate request for ${username} (${userId})`);
     
     // Defer the response immediately
     setTimeout(async () => {
