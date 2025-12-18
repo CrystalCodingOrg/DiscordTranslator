@@ -239,6 +239,15 @@ const server = Bun.serve({
       });
     }
 
+    // Terms of Service endpoint
+    if (url.pathname === "/terms") {
+      const html = await Bun.file("terms.html").text();
+      return new Response(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+
     if (req.method !== "POST") return new Response(null, { status: 405 });
 
     const signature = req.headers.get("X-Signature-Ed25519");
