@@ -26,6 +26,7 @@ COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /app/src ./src
 COPY --from=prerelease /app/package.json .
 COPY --from=prerelease /app/tsconfig.json .
+COPY --from=prerelease /app/*.html .
 
 # Set user to non-root
 USER bun
