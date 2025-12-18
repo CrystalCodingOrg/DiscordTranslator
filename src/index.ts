@@ -215,6 +215,9 @@ const commandAliases: Record<string, string> = {
   "Translate Message": "translate_message"
 }
 
+const privacyHtml = await Bun.file("privacy.html").text();
+const termsHtml = await Bun.file("terms.html").text();
+
 const server = Bun.serve({
   port: 3000,
   hostname: "0.0.0.0",
@@ -232,8 +235,7 @@ const server = Bun.serve({
 
     // Privacy policy endpoint
     if (url.pathname === "/privacy") {
-      const html = await Bun.file("privacy.html").text();
-      return new Response(html, {
+      return new Response(privacyHtml, {
         status: 200,
         headers: { "Content-Type": "text/html" },
       });
@@ -241,8 +243,7 @@ const server = Bun.serve({
 
     // Terms of Service endpoint
     if (url.pathname === "/terms") {
-      const html = await Bun.file("terms.html").text();
-      return new Response(html, {
+      return new Response(termsHtml, {
         status: 200,
         headers: { "Content-Type": "text/html" },
       });
