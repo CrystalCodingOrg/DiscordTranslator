@@ -32,7 +32,9 @@ export function getPool() {
 export async function initDatabase() {
   const db = getPool();
 
-  const createTableSQL = `
+  const queries: string[] = []
+
+  queries.push(`
     CREATE TABLE IF NOT EXISTS translation_history (
       id INT AUTO_INCREMENT PRIMARY KEY,
       original_message TEXT NOT NULL,
@@ -46,10 +48,12 @@ export async function initDatabase() {
       INDEX idx_hash_lang (original_message_hash, target_language),
       INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  `;
+  `);
 
   try {
-    await db.execute(createTableSQL);
+    for (const query of queries) {
+      await db.execute(query);
+    }
     console.log("✅ Database tables initialized");
   } catch (error) {
     console.error("❌ Failed to initialize database tables:", error);
