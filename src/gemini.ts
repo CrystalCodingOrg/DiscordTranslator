@@ -15,7 +15,9 @@ export type TranslationResult = {
 
 export async function translate(
     message: string,
-    language: string = "english"
+    language: string = "english",
+    discordId?: string,
+    username?: string
 ): Promise<TranslationResult> {
     // Check history first
     const cachedTranslation = await getTranslationFromHistory(message, language);
@@ -99,7 +101,9 @@ Do NOT include any extra text, commentary, markdown, or backticks.
         result.original_message,
         language,
         result.detected_language,
-        result.translated_message
+        result.translated_message,
+        discordId,
+        username
     );
 
     return result;
